@@ -32,7 +32,8 @@
 #elif defined FOUND_FOXY
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #else
-#error Unsupported ROS2 distro
+//#error Unsupported ROS2 distro
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #endif
 
 #include <sl/Camera.hpp>
