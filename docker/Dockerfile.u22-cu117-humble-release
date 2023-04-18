@@ -6,8 +6,8 @@ FROM ${IMAGE_NAME}
 ARG UBUNTU_RELEASE_YEAR=22
 ARG CUDA_MAJOR=11
 ARG CUDA_MINOR=7
-ARG ZED_SDK_MAJOR=3
-ARG ZED_SDK_MINOR=8
+ARG ZED_SDK_MAJOR=4
+ARG ZED_SDK_MINOR=0
 
 ARG ROS2_DIST=humble       # ROS2 distribution
 
@@ -92,6 +92,7 @@ RUN git clone --recursive https://github.com/stereolabs/zed-ros2-wrapper.git
 WORKDIR /root/ros2_ws
 
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
+  apt-get update -y || true && \
   rosdep install --from-paths src --ignore-src -r -y && \
   colcon build --parallel-workers $(nproc) --symlink-install \
   --event-handlers console_direct+ --base-paths src \

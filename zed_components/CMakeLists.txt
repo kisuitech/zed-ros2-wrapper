@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(zed_components)
 
-## Generate symbols for IDE indexer
+################################################
+## Generate symbols for IDE indexer (VSCode)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ################################################
@@ -42,7 +43,6 @@ else()
     message("*** WARNING *** ROS2 distro is unknown. This package could not work correctly.")
 endif()
 ################################################
-
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -95,6 +95,8 @@ set(DEPENDENCIES
     tf2_geometry_msgs
     geometry_msgs
     nav_msgs
+    nmea_msgs
+    geographic_msgs
     sensor_msgs
     stereo_msgs
     zed_interfaces
@@ -103,9 +105,13 @@ set(DEPENDENCIES
     diagnostic_updater
     visualization_msgs
     shape_msgs
+    robot_localization
+    ${TM_DEP}
 )
 
-find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
+
 find_package(rcutils REQUIRED)
 find_package(zed_interfaces)
 find_package(rclcpp REQUIRED)
@@ -117,14 +123,18 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(nmea_msgs REQUIRED)
+find_package(geographic_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stereo_msgs REQUIRED)
+
 find_package(image_transport REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
+find_package(robot_localization REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -163,6 +173,7 @@ set(ZED_LIBS
 set(SL_TOOLS_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_tools.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_win_avg.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/include/sl_logging.hpp
 )
 
 set(SL_TOOLS_SRC
@@ -172,7 +183,8 @@ set(SL_TOOLS_SRC
 
 set(ZED_CAMERA_INC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/include/visibility_control.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/sl_types.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/zed_camera/include/zed_camera_component.hpp    
 )
 
 set(ZED_CAMERA_SRC
@@ -192,7 +204,7 @@ target_compile_definitions(zed_camera_component
     PRIVATE "COMPOSITION_BUILDING_DLL"
 )
 target_link_libraries(zed_camera_component
-  ${ZED_LIBS}
+    ${ZED_LIBS}
 )
 ament_target_dependencies(zed_camera_component
     ${DEPENDENCIES}

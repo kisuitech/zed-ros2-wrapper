@@ -9,6 +9,8 @@ This folder contains a list of Dockerfile files to build Docker images ready to 
 
 Choose a name for the image and replace `<image_tag>` with it, e.g. `zed-ubuntu22.04-cuda11.7-ros2-humble`
 
+**Note:** You can find the Docker images pre-built for the latest version of the `master` branch in the Docker hub [stereolabs/zedbot](https://hub.docker.com/r/stereolabs/zedbot).
+
 ### Release image
 
 The Release image internally clones the master branch of this repository to build the ZED ROS2 Wrapper code.
@@ -31,8 +33,8 @@ The devel image internally needs the source code of the current branch. For this
 Create a temporary `tmp_sources` folder for the sources and copy the files:
 
 ```bash
-mkdir -p ./tmp_sourcesmkdir -p ./tmp_sources
-cp -cp -r ../zed* ./tmp_sourcesr ../zed* ./tmp_sources
+mkdir -p ./tmp_sources
+cp -r ../zed* ./tmp_sources
 ```
 
 Build the image for desktop:
@@ -59,10 +61,41 @@ rm -r ./tmp_sources
 
 It is important that the NVIDIA drivers are correctly accessible from the Docker image to run the ZED SDK code on the GPU.
 
+### AI module
+
+If you plan to use the AI module of the ZED SDK (Object Detection, Skeleton Tracking, NEURAL depth) we suggest binding mounting a folder to avoid downloading and optimizing the AI models each time the Docker image is restarted.
+
+This is easily done by using the following option:
+
+    -v /tmp/zed_ai/:/usr/local/zed/resources/
+
+The first time you use the AI model inside the Docker image, it will be downloaded and optimized in the local bound-mounted folder, and stored there for the next runs.
+
+### ZED X / ZED X Mini
+
+In order to use the ZED X and the ZED X Mini in a Docker container you must bind mount the following folders to your container: `/tmp/` and `/var/nvidia/nvcam/settings/`.
+
+This is easily done by using the following option:
+
+    -v /tmp/:/tmp/ -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/
+
+### Start the Docker container
+
 The following command starts an interactive BaSH session:
 
 ```bash
 docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e DISPLAY \
   -v /dev/shm:/dev/shm -v /tmp/.X11-unix/:/tmp/.X11-unix \
+  -v /tmp/zed_ai/:/usr/local/zed/resources/ \
+  <image_tag>
+```
+
+For ZED X and ZED X Mini
+
+```bash
+docker run --runtime nvidia -it --privileged --ipc=host --pid=host -e DISPLAY \
+  -v /dev/shm:/dev/shm \
+  -v /tmp/:/tmp/ -v /var/nvidia/nvcam/settings/:/var/nvidia/nvcam/settings/ \
+  -v /tmp/zed_ai/:/usr/local/zed/resources/ \
   <image_tag>
 ```

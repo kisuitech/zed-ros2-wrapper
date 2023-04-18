@@ -1,69 +1,137 @@
 LATEST CHANGES
 ==============
 
-2023-01-16
-----------
-- Removed annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.
+v4.0.0
+------
+- Add support for ZED-X and ZED-X Mini
 
-2023-01-05
-----------
-- Added a check on timestamp to not publish already published point cloud messages in the point cloud thread
+  - Move `general.grab_resolution` and `general.grab_frame_rate` to the yaml file specific for the relative camera model (i.e. `zed.yaml`, `zedm.yaml`, `zed2.yaml`, `zed2i.yaml`, `zedx.yaml`, `zedxm.yaml`)
+  - Add `zedx.launch.py` for ZED-X
+  - Add `zedxm.launch.py` for ZED-X Mini
+  - Improve `zed_macro.urdf.xacro` with specific configuration for the new camera models
+  - Add `display_zedx.launch.py` for ZED-X to ZED-ROS2-Examples
+  - Add `display_zedxm.launch.py` for ZED-X Mini to ZED-ROS2-Examples
+  - Add ZED-X and ZED-X Mini STL files to ZED-ROS2-Interfaces
 
-2023-01-02
-----------
-- Added Docker files (`docker` folder) ready to create Docker images for desktop host devices: Ubuntu 22.04, ROS2 Foxy, ZED SDK v3.8.2.
-- Changed the default depth mode to `PERFORMANCE` (1) for a faster node start in the case that the NEURAL depth AI model is not present.
+- Positional Tracking
 
-2022-12-19
-----------
-- Change `general.grab_resolution` and `general.pub_resolution` from integer to string.
-- Add new `LOW` value for `general.pub_resolution` (half the `MEDIUM` output resolution).
-- Fix distortion model (see Issue [#128](https://github.com/stereolabs/zed-ros2-wrapper/issues/128))
+  - Add `pos_tracking.set_as_static` parameters for applications with a static camera monitoring a robotics environment. See [PR #122](https://github.com/stereolabs/zed-ros2-wrapper/pull/122 ) Thx @gabor-kovacs
+  - Add custom message type `PosTrackStatus`
+  - Publish message on topic `~/pose/status` with the current status of the pose from the ZED SDK
+  - Publish message on topic `~/odom/status` with the current status of the odometry from the ZED SDK
 
-2022-12-12
-----------
-- Added diagnostic warning if the frequency of the camera grabbing thread is minor than the selected `general.grab_frame_rate` value.
+- Body Tracking
 
-2022-12-10
-----------
-- Improved the code for Moving Average calculation for better node diagnostics.
-- Temperature diagnostic is now always updated even if `sensors.sensors_image_sync` is true and no image topics are subscribed.
-- Improve Grab thread and Video/Depth publishing thread elaboration time diagnostic.
-- Improve thread synchronization when the frequency of the `grab` SDK function is minor of the expected camera frame rate setting because of a leaking of elaboration power.
+  - Add Support for the new Body Tracking module
+  - Add parameter `body_tracking.bt_enabled` to enable Body Tracking
+  - Add parameter `body_tracking.model` to set the AI model to be used
+  - Add parameter `body_tracking.body_format` to set the Body Format to be used
+  - Add parameter `body_tracking.allow_reduced_precision_inference` to improve performances
+  - Add parameter `body_tracking.max_range` to set the max range for Body Detection
+  - Add parameter `body_tracking.body_kp_selection` to choose the Body key points to be used
+  - Add parameter `body_tracking.enable_body_fitting` to enable body fitting
+  - Add parameter `body_tracking.enable_tracking` to enable the tracking of the detected bodies
+  - Add parameter `body_tracking.prediction_timeout_s` to set the timeout of the prediction phase while tracking
+  - Add parameter `body_tracking.confidence_threshold` to set the detection confidence threshold
+  - Add parameter `body_tracking.minimum_keypoints_threshold` to set the minimum number of detected key points to consider a body valid
+  - Publish new message on topic `~/body_trk/skeletons`
+  - Add service `enable_body_trk` to start/stop body tracking
 
-2022-12-09
-----------
-- Removed node parameter `general.resolution`, replaced by `general.grab_resolution`.
-- Added node parameter `general.pub_resolution` used to reduce node computation and message bandwidth.
-  - Available output resolutions: `HD2K`, `HD1080`, `HD720`, `MEDIUM`, `VGA`. `MEDIUM` is an optimized output resolution to maximize throughput and minimize processing costs.
-- Removed node parameters `video.img_downsample_factor` and `depth.depth_downsample_factor`. Use the new parameter `general.pub_resolution` instead.
-- Set default DEPTH MODE to NEURAL (4)
+- GNSS fusion integration
 
-2022-12-06
-----------
-- Improved the `zed_camera.launch.py`
+  - New param `gnss_fusion.gnss_fusion_enabled` to enable GNSS fusion
+  - New param `gnss_fusion.gnss_fix_topic` name of the topic containing GNSS Fix data of type `sensor_msgs/NavSatFix`
+  - Add `nmea_msgs` dependency
+  - Add GNSS Fix Diagnostic
+  - Add new launch parameter `gnss_frame` to enable the GNSS link in the ZED URDF
+  - Add new node parameter `gnss_fusion.gnss_zero_altitude` to ignore GNSS altitude information
+  - Add new node parameter `gnss_fusion.gnss_frame` to set the name of the frame link of the GNSS sensor
+  - Disable Area Memory (loop closure) when GNSS fusion is enabled
+  - Add services `toLL` and `fromLL` to use the ZED ROS2 Wrapper with the Nav2 Waypoint Navigation package
+  - Add `geographic_msgs::msg::GeoPoseStamped` message publisher
+  - Add parameter `gnss_fusion.publish_utm_tf`
+  - Add parameter `gnss_fusion.broadcast_utm_transform_as_parent_frame`
+  - Add parameter `gnss_fusion.gnss_init_distance`
+  - Publish message on topic `~/geo_pose/status` with the current status of the GeoPose from the ZED SDK
+  - Publish message on topic `~/pose/filtered` with the current GNSS filtered pose in `map` frame
+  - Publish message on topic `~/pose/filtered/status` with the current status of the GNSS filtered pose from the ZED SDK
 
-  - Added support for `OpaqueFunction` in order to automatically configure the launch file according to the value of the launch parameter `cam_model`.
-  - Changed parameters to set camera pose in launch files. From 6 separated parameters (`cam_pos_x`,`cam_pos_y`,`cam_pos_z`,`cam_roll`,`cam_pitch`,`cam_yaw`) to one single array (`cam_pose`).
-  - Removed the workaround for empty `svo_path` launch parameter values thanks to `TextSubstitution`.
-  - Modified the "display" launch files in [zed-ros2-examples](https://github.com/stereolabs/zed-ros2-examples) to match the new configuration.
-  - Added `publish_tf` and `publish_map_tf` launch parameters useful for multi-camera configuretion or external odometry fusion.
+- Object Detection
 
-- Added multi-camera example in `zed-ros2-examples` repository.
+  - Add `object_detection.allow_reduced_precision_inference` to allow inference to run at a lower precision to improve runtime and memory usage
+  - Add `object_detection.max_range` to defines a upper depth range for detections
+  - Remove `object_detection.body_format`
 
-2022-11-30
-----------
-- Added `pos_tracking.set_as_static` parameters for applications with a static camera monitoring a robotics environment. See [PR #122](https://github.com/stereolabs/zed-ros2-wrapper/pull/122 ) Thx @gabor-kovacs
+- Docker
 
-2022-11-18
-----------
-- Code lint and re-formatting according to [ROS2 code rules](https://docs.ros.org/en/humble/The-ROS2-Project/Contributing/Code-Style-Language-Versions.html).
-- Add support for automatic lint tools to all the packages.
-- Change LICENSE to Apache 2.0 to match ROS2 license.
+  - Add Docker files (see `docker` folder) ready to create Docker images for desktop host devices
 
-2022-11-17
-----------
-- Added `zed_id` and `serial_number` launch parameters to open the correct camera in multi-camera configurations.
+- Examples/Tutorials
+
+  - Add multi-camera example in `zed-ros2-examples` repository.
+
+- Add full Terrain Mapping (local obstacle detection) support [EXPERIMENTAL FEATURE AVAILABLE ONLY FOR BETA TESTERS]
+
+  - ZED SDK Terrain Mapping published as GridMap message
+  - Add parameter `local_mapping.terrain_mapping_enabled` to enable terrain mapping publishing a local obstacle map
+  - Add parameter `local_mapping.data_pub_rate` to set the Local Map data publish frequency
+  - Add parameter `local_mapping.grid_resolution` to set the Local Map resolution in meters [min: 0.01 - max: 1.0]
+  - Add parameter `local_mapping.grid_range` to set the maximum depth range for local map generation [min: 1.0 - max: 8.0]
+  - Add parameter `local_mapping.height_threshold` to set the maximum height for obstacles
+  - Publish gridmap on topic `local_map/gridmap`
+  - Publish elevation map image on topic `local_map/elev_img`
+  - Publish obstacle color map image on topic `local_map/col_img`
+  - Add traversability cost computation for Terrain Mapping (local_mapping)
+
+    - Change parameter `local_mapping.height_threshold` to `local_mapping.robot_heigth`
+    - Add parameter `local_mapping.robot_radius` to set radius of the robot
+    - Add parameter `local_mapping.robot_max_step` to set max height of a step that the robot can overcome
+    - Add parameter `local_mapping.robot_max_slope` to set max slope (degrees) that the robot can overcome
+    - Add parameter `local_mapping.robot_max_roughness` to set max roughness of the terrain that the robot can overcome
+
+- Add support for simulated data [EXPERIMENTAL FEATURE AVAILABLE ONLY FOR BETA TESTERS]
+
+  - Add parameter `use_sim_time` to enable SIMULATION mode
+  - Add parameter `sim_address` tos set the local address of the machine running the simulator
+  - Change StopWatch to use ROS clock instead of System Clock. In this way diagnostic and time checking work also in simulation
+  - Disable camera settings control in simulation
+
+- Others
+
+  - Remove `sensing_mode`, no more available in SDK v4.0
+  - Remove `extrinsic_in_camera_frame`, no more available in SDK v4.0
+  - Add `zed_id` and `serial_number` launch parameters to open the correct camera in multi-camera configurations.
+  - Code lint and re-formatting according to [ROS2 code rules](https://docs.ros.org/en/humble/The-ROS2-Project/Contributing/Code-Style-Language-Versions.html).
+  - Add support for automatic lint tools to all the packages.
+  - Remove node parameter `general.resolution`, replaced by `general.grab_resolution`.
+  - Add node parameter `general.pub_resolution` used to reduce node computation and message bandwidth.
+
+    - Available output resolutions: `HD2K`, `HD1080`, `HD720`, `MEDIUM`, `VGA`. `MEDIUM` is an optimized output resolution to maximize throughput and minimize processing costs.
+  
+  - Remove node parameters `video.img_downsample_factor` and `depth.depth_downsample_factor`. Use the new parameter `general.pub_resolution` instead.
+  - Change `general.grab_resolution` and `general.pub_resolution` from integer to string.
+  - Add new `LOW` value for `general.pub_resolution` (half the `MEDIUM` output resolution).
+  - Remove `depth.quality` parameter (replaced with `depth.depth_mode`)
+  - Add `depth.depth_mode` parameter: a string reflecting the ZED SDK `DEPTH_MODE` available value names
+  - The parameter `depth.depth_stabilization` is now an integer in [0,100] reflecting ZED SDK behavior
+  - Fix distortion model (see Issue [#128](https://github.com/stereolabs/zed-ros2-wrapper/issues/128))
+  - Improve the code for Moving Average calculation for better node diagnostics.
+  - Temperature diagnostic is now always updated even if `sensors.sensors_image_sync` is true and no image topics are subscribed.
+  - Improve Grab thread and Video/Depth publishing thread elaboration time diagnostic.
+  - Add a check on timestamp to not publish already published point cloud messages in the point cloud thread
+  - Improve thread synchronization when the frequency of the `grab` SDK function is minor of the expected camera frame rate setting because of a leaking of elaboration power.
+  - Add diagnostic warning if the frequency of the camera grabbing thread is minor than the selected `general.grab_frame_rate` value.
+  - Remove annoying build log messages. Only warning regarding unsupported ROS2 distributions will be displayed when required.
+  - Convert `shared_ptr` to `unique_ptr` for IPC support
+  - Improve the `zed_camera.launch.py`
+
+    - Add support for `OpaqueFunction` in order to automatically configure the launch file according to the value of the launch parameter `cam_model`.
+    - Change parameters to set camera pose in launch files. From 6 separated parameters (`cam_pos_x`,`cam_pos_y`,`cam_pos_z`,`cam_roll`,`cam_pitch`,`cam_yaw`) to one single array (`cam_pose`).
+    - Remove the workaround for empty `svo_path` launch parameter values thanks to `TextSubstitution`.
+    - Modify the "display" launch files in [zed-ros2-examples](https://github.com/stereolabs/zed-ros2-examples) to match the new configuration.
+    - Add `publish_tf` and `publish_map_tf` launch parameters useful for multi-camera configuretion or external odometry fusion.
+  
+  - Change LICENSE to Apache 2.0 to match ROS2 license.
 
 v3.8.x
 ------
