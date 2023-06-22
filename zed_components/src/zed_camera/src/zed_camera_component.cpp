@@ -555,6 +555,22 @@ void ZedCamera::getGeneralParams()
 
   RCLCPP_INFO(get_logger(), "*** GENERAL parameters ***");
 
+  getParam("general.svo_file", std::string(), mSvoFilepath);
+  if (mSvoFilepath.compare("live") == 0) {
+    mSvoFilepath = "";
+  }
+  RCLCPP_INFO_STREAM(get_logger(), " * SVO: '" << mSvoFilepath.c_str() << "'");
+
+  if (mSvoFilepath == "") {
+    mSvoMode = false;
+  } else {
+    mSvoMode = true;
+    getParam("general.svo_loop", mSvoLoop, mSvoLoop);
+    RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
+    getParam("general.svo_realtime", mSvoRealtime, mSvoRealtime);
+    RCLCPP_INFO(get_logger(), " * SVO Realtime: %s", mSvoRealtime ? "TRUE" : "FALSE");
+  }
+
   std::string camera_model = "zed";
   getParam("general.camera_model", camera_model, camera_model);
   if (camera_model == "zed") {
@@ -567,15 +583,31 @@ void ZedCamera::getGeneralParams()
     mCamUserModel = sl::MODEL::ZED2i;
   } else if (camera_model == "zedx") {
     mCamUserModel = sl::MODEL::ZED_X;
-    if (!IS_JETSON) {
+    if (mSvoMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing an SVO for " << sl::toString(
+          mCamUserModel) << " camera model.");
+    } else if (mSimEnabled) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Simulating a " << sl::toString(
+          mCamUserModel) << " camera model.");
+    } else if (!IS_JETSON) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Camera model " << sl::toString(
           mCamUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
       exit(EXIT_FAILURE);
     }
-  } else if (IS_JETSON && camera_model == "zedxm") {
+  } else if (camera_model == "zedxm") {
     mCamUserModel = sl::MODEL::ZED_XM;
-    if (!IS_JETSON) {
+    if (mSvoMode) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Playing an SVO for " << sl::toString(
+          mCamUserModel) << " camera model.");
+    } else if (mSimEnabled) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), " + Simulating a " << sl::toString(
+          mCamUserModel) << " camera model.");
+    } else if (!IS_JETSON) {
       RCLCPP_ERROR_STREAM(
         get_logger(), "Camera model " << sl::toString(
           mCamUserModel).c_str() << " is available only with NVIDIA Jetson devices.");
@@ -588,17 +620,6 @@ void ZedCamera::getGeneralParams()
   RCLCPP_INFO_STREAM(get_logger(), " * Camera model: " << camera_model << " - " << mCamUserModel);
 
   getParam("general.sdk_verbose", mVerbose, mVerbose, " * SDK Verbose: ");
-  getParam("general.svo_file", std::string(), mSvoFilepath, " * SVO: ");
-  if (mSvoFilepath.compare("live") == 0) {
-    mSvoFilepath = "";
-  }
-
-  if (!mSvoFilepath.empty()) {
-    getParam("general.svo_loop", mSvoLoop, mSvoLoop);
-    RCLCPP_INFO(get_logger(), " * SVO Loop: %s", mSvoLoop ? "TRUE" : "FALSE");
-    getParam("general.svo_realtime", mSvoRealtime, mSvoRealtime);
-    RCLCPP_INFO(get_logger(), " * SVO Realtime: %s", mSvoRealtime ? "TRUE" : "FALSE");
-  }
   getParam("general.camera_name", mCameraName, mCameraName, " * Camera name: ");
   getParam("general.zed_id", mCamId, mCamId, " * Camera ID: ");
   getParam("general.serial_number", mCamSerialNumber, mCamSerialNumber, " * Camera SN: ");
@@ -3270,7 +3291,6 @@ bool ZedCamera::startCamera()
 
     mInitParams.input.setFromSVOFile(mSvoFilepath.c_str());
     mInitParams.svo_real_time_mode = mSvoRealtime;
-    mSvoMode = true;
   } else {
     RCLCPP_INFO(get_logger(), "*** CAMERA OPENING ***");
 
@@ -3469,13 +3489,13 @@ bool ZedCamera::startCamera()
       break;
 
     case PubRes::HD1080:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      pub_w = sl::getResolution(sl::RESOLUTION::HD1080).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::HD1080).height;
       break;
 
     case PubRes::HD720:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      pub_w = sl::getResolution(sl::RESOLUTION::HD720).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::HD720).height;
       break;
 
     case PubRes::MEDIUM:
@@ -3484,8 +3504,8 @@ bool ZedCamera::startCamera()
       break;
 
     case PubRes::VGA:
-      pub_w = sl::getResolution(sl::RESOLUTION::HD2K).width;
-      pub_h = sl::getResolution(sl::RESOLUTION::HD2K).height;
+      pub_w = sl::getResolution(sl::RESOLUTION::VGA).width;
+      pub_h = sl::getResolution(sl::RESOLUTION::VGA).height;
       break;
 
     case PubRes::LOW:
@@ -3836,7 +3856,7 @@ bool ZedCamera::startCamera()
     mFusionInitParams.coordinate_units = ROS_MEAS_UNITS;
     mFusionInitParams.verbose = mVerbose != 0;
     mFusionInitParams.output_performance_metrics = true;
-    mFusionInitParams.timeout_period_number = (1.0 / mCamGrabFrameRate) * mCamTimeoutSec;
+    mFusionInitParams.timeout_period_number = 20; // TODO(Walter) Evaluate this: mCamGrabFrameRate * mCamTimeoutSec;
 
     // Fusion initialization
     sl::FUSION_ERROR_CODE fus_err = mFusion.init(mFusionInitParams);
